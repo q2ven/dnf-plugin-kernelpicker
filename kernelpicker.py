@@ -21,6 +21,32 @@ class KernelPicker(dnf.Plugin):
         VARIANT_LATEST
     }
 
+    PACKAGE_NAMES = {
+        'non_namespaced': [
+            'bpftool',
+            'bpftool-debuginfo',
+            'kernel',
+            'kernel-debuginfo',
+            'kernel-debuginfo-common-aarch64',
+            'kernel-debuginfo-common-x86_64',
+            'kernel-devel',
+            'kernel-headers',
+            'kernel-libbpf',
+            'kernel-libbpf-debuginfo',
+            'kernel-libbpf-devel',
+            'kernel-libbpf-static',
+            'kernel-modules-extra',
+            'kernel-modules-extra-common',
+            'kernel-tools',
+            'kernel-tools-debuginfo',
+            'kernel-tools-devel',
+            'perf',
+            'perf-debuginfo',
+            'python3-perf',
+            'python3-perf-debuginfo'
+        ]
+    }
+
     def __init__(self, base, cli):
         super().__init__(base, cli)
 
@@ -74,6 +100,22 @@ class KernelPicker(dnf.Plugin):
 
         logger.debug(f'Kernel variant: {self.major_version}')
 
+    def get_filter_query(self):
+        version__lt = f'{self.major_version}.0'
+
+        first, second = self.major_version.split('.')
+
+        version__gte = '.'.join([
+            first,
+            str(int(second) + 1),
+            '0'
+        ])
+
+        return [
+            {'version__lt': version__lt},
+            {'version__gte': version__gte}
+        ]
+
     def exclude_non_namespaced_packages(self):
         """
         Filter out non-namespaced kernel & subpackages if their versions meet
@@ -81,6 +123,13 @@ class KernelPicker(dnf.Plugin):
           2. >= self.major_version + 1
         """
         excluded = self.empty
+
+        for name in self.PACKAGE_NAMES['non_namespaced']:
+            base = self.all.filter(name__eq=name)
+
+            for query in self.get_filter_query():
+                excluded = excluded.union(base.filter(**query))
+
         self.excluded = self.excluded.union(excluded)
 
     def exclude_namespaced_packages(self):
