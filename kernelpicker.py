@@ -44,6 +44,18 @@ class KernelPicker(dnf.Plugin):
             'perf-debuginfo',
             'python3-perf',
             'python3-perf-debuginfo'
+        ],
+        'namespaced': [
+            'kernel6.12',
+            'kernel6.12-debuginfo',
+            'kernel6.12-debuginfo-common-aarch64',
+            'kernel6.12-debuginfo-common-x86_64',
+            'kernel6.12-modules-extra',
+            'kernel6.12-modules-extra-common',  # not yet provided ?
+            'perf6.12',
+            'perf6.12-debuginfo',
+            'python3-perf6.12',
+            'python3-perf6.12-debuginfo'
         ]
     }
 
@@ -139,6 +151,13 @@ class KernelPicker(dnf.Plugin):
           2. >= self.major_version + 1
         """
         excluded = self.empty
+
+        for name in self.PACKAGE_NAMES['namespaced']:
+            base = self.all.filter(name__eq=name)
+
+            for query in self.get_filter_query():
+                excluded = excluded.union(base.filter(**query))
+
         self.excluded = self.excluded.union(excluded)
 
     def exclude_livepatch_packages(self):
