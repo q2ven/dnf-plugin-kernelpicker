@@ -74,11 +74,57 @@ class KernelPicker(dnf.Plugin):
 
         logger.debug(f'Kernel variant: {self.major_version}')
 
+    def exclude_non_namespaced_packages(self):
+        """
+        Filter out non-namespaced kernel & subpackages if their versions meet
+          1. < self.major_version
+          2. >= self.major_version + 1
+        """
+        excluded = self.empty
+        self.excluded = self.excluded.union(excluded)
+
+    def exclude_namespaced_packages(self):
+        """
+        Filter out namespaced kernel & subpackages if their versions meet
+          1. < self.major_version
+          2. >= self.major_version + 1
+        """
+        excluded = self.empty
+        self.excluded = self.excluded.union(excluded)
+
+    def exclude_livepatch_packages(self):
+        excluded = self.empty
+        self.excluded = self.excluded.union(excluded)
+
+    def exclude_packages(self):
+        """
+        Filter out kernel, subpackages, and livepatch that does not match
+        the preferred major version.
+        """
+        self.excluded = self.empty
+
+        self.exclude_non_namespaced_packages()
+        self.exclude_namespaced_packages()
+        self.exclude_livepatch_packages()
+
+        if self.excluded:
+            logger.debug(
+                'Filtered packages\n  %s\n',
+                '\n  '.join(
+                    f'{query.name}-{query.version}.{query.release}.{query.arch} ({query.reponame})'
+                    for query in self.excluded.run()
+                )
+            )
+
+            self.base.sack.add_excludes(self.excluded)
+
     def sack(self):
         self.all = self.base.sack.query()
         self.available = self.all.available()
+        self.empty = self.all.filter(empty=True)
 
         self.set_major_version()
+        self.exclude_packages()
 
 
 class KernelPickerCommand(dnf.cli.Command):
