@@ -52,6 +52,26 @@ class KernelPicker(dnf.Plugin):
             logger.warning(_(f'Ignoring kernel variant of $(uname -r): \'{variant}\''))
             self.set_variant(self.VARIATN_DEFUALT)
 
+    def get_excluded_packages(self):
+        packages = self.base.sack.query()
+
+        excluded = packages.filter(empty=True)
+
+        return excluded
+
+    def sack(self):
+        excluded = self.get_excluded_packages()
+
+        logger.debug(
+            _('Filtered packages\n  %s\n'),
+            '\n  '.join(
+                f'{query.name}-{query.version}.{query.release}.{query.arch} ({query.reponame})'
+                for query in excluded.run()
+            )
+        )
+
+        self.base.sack.add_excludes(excluded)
+
 
 class KernelPickerCommand(dnf.cli.Command):
     aliases = ('kernelpicker',)
