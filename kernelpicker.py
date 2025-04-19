@@ -15,6 +15,12 @@ class KernelPicker(dnf.Plugin):
         VARIANT_6_12
     }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        if self.cli:
+            self.cli.register_command(KernelPickerCommand)
+
     def set_variant(self, variant):
         if variant in self.VARIANTS:
             self.variant = variant
@@ -45,3 +51,33 @@ class KernelPicker(dnf.Plugin):
         if not self.set_variant(variant):
             logger.warning(_(f'Ignoring kernel variant of $(uname -r): \'{variant}\''))
             self.set_variant(self.VARIATN_DEFUALT)
+
+
+class KernelPickerCommand(dnf.cli.Command):
+    aliases = ('kernelpicker',)
+    summary = _('Configure preferred kernel package variant')
+
+    @staticmethod
+    def set_argparser(parser):
+        parser.add_argument(
+            'variant',
+            nargs='?',
+            choices=KernelPicker.VARIANTS,
+            help=_('Set the preference for kernel package variant, '
+                   'or show it if not specified'),
+            metavar='[%s]' % ' | '.join(KernelPicker.VARIANTS)
+        )
+
+    def run(self):
+        if self.opts.variant:
+            self.base.conf.write_raw_configfile(
+                self.base.conf.pluginconfpath[0] + '/kernelpicker.conf',
+                'main',
+                self.base.conf.substitutions,
+                {'variant': self.opts.variant}
+            )
+
+        kernelpicker = KernelPicker(self.base, None)
+        kernelpicker.config()
+
+        logger.info(f'variant: {kernelpicker.variant}')
