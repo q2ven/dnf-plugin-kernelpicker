@@ -31,6 +31,9 @@ class KernelPicker(dnf.Plugin):
         self.version = version
         self.release = release
 
+        if self.cli:
+            self.cli.register_command(KernelPickerCommand)
+
     def config(self):
         cp = self.read_config(self.base.conf)
 
@@ -76,3 +79,33 @@ class KernelPicker(dnf.Plugin):
         self.available = self.all.available()
 
         self.set_major_version()
+
+
+class KernelPickerCommand(dnf.cli.Command):
+    aliases = ('kernelpicker',)
+    summary = 'Configure preferred kernel package variant'
+
+    @staticmethod
+    def set_argparser(parser):
+        parser.add_argument(
+            'variant',
+            nargs='?',
+            choices=KernelPicker.VARIANTS,
+            help=('Set the preference for kernel package variant, '
+                  'or show it if not specified'),
+            metavar='[%s]' % ' | '.join(KernelPicker.VARIANTS)
+        )
+
+    def run(self):
+        if self.opts.variant:
+            self.base.conf.write_raw_configfile(
+                self.base.conf.pluginconfpath[0] + '/kernelpicker.conf',
+                'main',
+                self.base.conf.substitutions,
+                {'variant': self.opts.variant}
+            )
+
+        kernelpicker = KernelPicker(self.base, None)
+        kernelpicker.config()
+
+        logger.info(f'variant: {kernelpicker.variant}')
