@@ -38,6 +38,18 @@ class KernelPicker(dnf.Plugin):
             'perf-debuginfo',
             'python3-perf',
             'python3-perf-debuginfo'
+        ],
+        'namespaced': [
+            'kernel6.12',
+            'kernel6.12-debuginfo',
+            'kernel6.12-debuginfo-common-aarch64',
+            'kernel6.12-debuginfo-common-x86_64',
+            'kernel6.12-modules-extra',
+            'kernel6.12-modules-extra-common',  # not yet provided ?
+            'perf6.12',
+            'perf6.12-debuginfo',
+            'python3-perf6.12',
+            'python3-perf6.12-debuginfo'
         ]
     }
 
@@ -92,7 +104,7 @@ class KernelPicker(dnf.Plugin):
     def get_excluded_base(self, packages):
         excluded = packages.filter(empty=True)
 
-        for name in self.PACKAGE_NAMES['base']:
+        for name in self.PACKAGE_NAMES['base'] + self.PACKAGE_NAMES['namespaced']:
             base = packages.filter(name__eq=name)
 
             for query in self.QUERIES[self.variant]:
