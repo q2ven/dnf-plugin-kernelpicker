@@ -161,7 +161,14 @@ class KernelPicker(dnf.Plugin):
         self.excluded = self.excluded.union(excluded)
 
     def exclude_livepatch_packages(self):
-        excluded = self.empty
+        # kernel-livepatch-repo-(s3|cdn) is noarch
+        livepatch = self.all.filter(arch__neq='noarch', name__glob='kernel-livepatch-*')
+
+        # Do not restrict to the running kernel only, in case a user wants to
+        # install a new kernel and livepatch in the same transaction and reboot.
+        included = self.all.filter(name__glob=f'kernel-livepatch-{self.major_version}.*')
+        excluded = livepatch.difference(included)
+
         self.excluded = self.excluded.union(excluded)
 
     def exclude_packages(self):
