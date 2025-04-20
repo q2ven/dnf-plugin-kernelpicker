@@ -182,6 +182,10 @@ class KernelPicker(dnf.Plugin):
         self.exclude_namespaced_packages()
         self.exclude_livepatch_packages()
 
+        # "dnf update" requires the running kernel packages to be
+        # included in the query result, so don't exclude them !
+        self.excluded = self.excluded.difference(self.installed)
+
         if self.excluded:
             logger.debug(
                 'Filtered packages\n  %s\n',
@@ -197,6 +201,7 @@ class KernelPicker(dnf.Plugin):
         self.all = self.base.sack.query()
         self.available = self.all.available()
         self.empty = self.all.filter(empty=True)
+        self.installed = self.all.installed()
 
         self.set_major_version()
         self.exclude_packages()
