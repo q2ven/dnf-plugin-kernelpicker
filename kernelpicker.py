@@ -105,12 +105,21 @@ class KernelPicker(dnf.Plugin):
         excluded = packages.filter(empty=True)
 
         for name in self.PACKAGE_NAMES['base'] + self.PACKAGE_NAMES['namespaced']:
-            # "dnf update" requires the running kernel packages to be
-            # included in the query result, so don't exclude them !
-            base = packages.filter(name__eq=name).available()
+            base = packages.filter(name__eq=name)
 
             for query in self.QUERIES[self.variant]:
                 excluded = excluded.union(base.filter(**query))
+
+            # "dnf update" requires the running kernel packages to be
+            # included in the query result, so don't exclude them !
+            uname_r = platform.release()
+            version, rest = uname_r.split('-')
+            release = '.'.join(rest.split('.')[:3])
+            included = base.filter(**{
+                'version__eq': version,
+                'release__eq': release,
+            })
+            excluded = excluded.difference(included)
 
         return excluded
 
