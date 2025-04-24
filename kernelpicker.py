@@ -206,6 +206,17 @@ class KernelPicker(dnf.Plugin):
         self.set_major_version()
         self.exclude_packages()
 
+    def resolved(self):
+        if getattr(self, 'resolving', False):
+            return
+
+        resolve = False
+
+        if resolve:
+            self.resolving = True
+            self.base.resolve()
+            self.resolving = False
+
 
 class KernelPickerCommand(dnf.cli.Command):
     aliases = ('kernelpicker',)
