@@ -211,6 +211,23 @@ class KernelPicker(dnf.Plugin):
         Returns a list of installing kernel packages (dnf.Package)
         """
         kernels = []
+
+        method_names = [
+            'list_downgrades',
+            'list_installs',
+            'list_reinstalls',
+            'list_upgrades',
+        ]
+
+        for method_name in method_names:
+            list_packages = getattr(self.base.goal, method_name)
+
+            for package in list_packages():
+                if package.name in ['kernel', 'kernel6.12']:
+                    kernels.append(package)
+
+        kernels.sort(key=lambda package: package.version + package.release)
+
         return kernels
 
     def get_installed_kernels(self):
