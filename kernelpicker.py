@@ -218,6 +218,11 @@ class KernelPicker(dnf.Plugin):
         Returns a list of installed kernel packages (dnf.Package)
         """
         kernels = []
+        kernels += self.installed.filter(name__eq='kernel').run()
+        kernels += self.installed.filter(name__eq='kernel6.12').run()
+
+        kernels.sort(key=lambda package: package.version + package.release)
+
         return kernels
 
     def install_non_namespaced_packages(self, kernel):
