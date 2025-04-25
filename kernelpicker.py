@@ -46,16 +46,15 @@ class KernelPicker(dnf.Plugin):
             'python3-perf-debuginfo'
         ],
         'namespaced': [
-            'kernel6.12',
-            'kernel6.12-debuginfo',
-            'kernel6.12-debuginfo-common-aarch64',
-            'kernel6.12-debuginfo-common-x86_64',
-            'kernel6.12-modules-extra',
-            'kernel6.12-modules-extra-common',  # not yet provided ?
-            'perf6.12',
-            'perf6.12-debuginfo',
-            'python3-perf6.12',
-            'python3-perf6.12-debuginfo'
+            ('kernel-debuginfo', 'kernel6.12-debuginfo'),
+            ('kernel-debuginfo-common-aarch64', 'kernel6.12-debuginfo-common-aarch64'),
+            ('kernel-debuginfo-common-x86_64', 'kernel6.12-debuginfo-common-x86_64'),
+            ('kernel-modules-extra', 'kernel6.12-modules-extra'),
+            ('kernel-modules-extra-common', 'kernel6.12-modules-extra-common'),  # not yet provided ?
+            ('perf', 'perf6.12'),
+            ('perf-debuginfo', 'perf6.12-debuginfo'),
+            ('python3-perf', 'python3-perf6.12'),
+            ('python3-perf-debuginfo', 'python3-perf6.12-debuginfo')
         ]
     }
 
@@ -152,7 +151,7 @@ class KernelPicker(dnf.Plugin):
         """
         excluded = self.empty
 
-        for name in self.PACKAGE_NAMES['namespaced']:
+        for _, name in self.PACKAGE_NAMES['namespaced']:
             base = self.all.filter(name__eq=name)
 
             for query in self.get_filter_query():
@@ -279,6 +278,31 @@ class KernelPicker(dnf.Plugin):
         and return True if packages are added to transaction.
         """
         resolve = False
+
+        for non_namespaceed, namespaced in self.PACKAGE_NAMES['namespaced']:
+            if kernel.name == 'kernel':
+                installed_name = namespaced
+                install_name = non_namespaceed
+            else:
+                installed_name = non_namespaceed
+                install_name = namespaced
+
+            if not self.installed.filter(name__eq=installed_name):
+                continue
+
+            query = {
+                'name__eq': install_name,
+                'version__eq': kernel.version,
+                'release__eq': kernel.release
+            }
+
+            if self.installed.filter(**query) or \
+               not self.available.filter(**query):
+                continue
+
+            self.base.install(f'{install_name}-{kernel.version}-{kernel.release}', strict=False)
+            resolve = True
+
         return resolve
 
     def install_packages(self, kernel):
