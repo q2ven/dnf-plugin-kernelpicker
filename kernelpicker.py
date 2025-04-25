@@ -248,6 +248,29 @@ class KernelPicker(dnf.Plugin):
         and return True if packages are added to transaction.
         """
         resolve = False
+
+        query_vr = {
+            'version__eq': kernel.version,
+            'release__eq': kernel.release
+        }
+
+        for name in self.PACKAGE_NAMES['non_namespaced']:
+            query = {
+                'name__eq': name
+            }
+
+            if not self.installed.filter(**query):
+                continue
+
+            query.update(query_vr)
+
+            if self.installed.filter(**query) or \
+               not self.available.filter(**query):
+                continue
+
+            self.base.install(f'{name}-{kernel.version}-{kernel.release}', strict=False)
+            resolve = True
+
         return resolve
 
     def install_namespaced_packages(self, kernel):
