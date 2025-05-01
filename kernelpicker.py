@@ -13,10 +13,12 @@ class KernelPicker(dnf.Plugin):
 
     VARIANT_6_1 = '6.1'
     VARIANT_6_12 = '6.12'
+    VARIANT_LATEST = 'latest'
     VARIANT_DEFUALT = VARIANT_6_1
     VARIANTS = {
         VARIANT_6_1,
-        VARIANT_6_12
+        VARIANT_6_12,
+        VARIANT_LATEST
     }
 
     def __init__(self, base, cli):
@@ -54,8 +56,23 @@ class KernelPicker(dnf.Plugin):
         self.variant = self.VARIANT_DEFUALT
 
     def set_major_version(self):
-        self.major_version = self.variant
+        if self.variant == 'latest':
+            versions = []
+
+            for name in ('kernel', 'kernel6.12'):
+                latest = self.available.filter(name__eq=name).latest()
+                if latest:
+                    kernel = latest.run()[0]
+                    versions.append(kernel.version)
+
+            self.major_version = get_major_version(versions[-1])
+        else:
+            self.major_version = self.variant
+
         logger.debug(f'Kernel variant: {self.major_version}')
 
     def sack(self):
+        self.all = self.base.sack.query()
+        self.available = self.all.available()
+
         self.set_major_version()
