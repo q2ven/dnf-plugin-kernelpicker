@@ -119,6 +119,9 @@ class KernelPicker(dnf.Plugin):
 
         resolve = False
 
+        if kernel.name == 'kernel':
+            return resolve
+
         for non_namespaceed, namespaced in self.PACKAGE_NAMES['namespaced']:
             if kernel.name == 'kernel':
                 installed_name = namespaced
