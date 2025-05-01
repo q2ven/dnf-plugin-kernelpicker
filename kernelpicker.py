@@ -206,11 +206,64 @@ class KernelPicker(dnf.Plugin):
         self.set_major_version()
         self.exclude_packages()
 
+    def get_installing_kernels(self):
+        """
+        Returns a list of installing kernel packages (dnf.Package)
+        """
+        kernels = []
+        return kernels
+
+    def get_installed_kernels(self):
+        """
+        Returns a list of installed kernel packages (dnf.Package)
+        """
+        kernels = []
+        return kernels
+
+    def install_non_namespaced_packages(self, kernel):
+        """
+        Install matching non_namespaced subpackages based on passed kernel (dnf.Package)
+        and return True if packages are added to transaction.
+        """
+        resolve = False
+        return resolve
+
+    def install_namespaced_packages(self, kernel):
+        """
+        Install matching namespaced subpackages based on passed kernel (dnf.Package)
+        and return True if packages are added to transaction.
+        """
+        resolve = False
+        return resolve
+
+    def install_packages(self, kernel):
+        """
+        Install matching subpackages based on passed kernel (dnf.Package)
+        and return True if packages are added to transaction.
+        """
+        resolve = False
+
+        # Don't try to install filtered versions of packages.
+        if get_major_version(kernel.version) != self.major_version:
+            return resolve
+
+        resolve |= self.install_non_namespaced_packages(kernel)
+        resolve |= self.install_namespaced_packages(kernel)
+
+        return resolve
+
     def resolved(self):
         if getattr(self, 'resolving', False):
             return
 
         resolve = False
+
+        kernels = self.get_installing_kernels()
+        if not kernels:
+            kernels = self.get_installed_kernels()
+
+        for kernel in kernels:
+            resolve |= self.install_packages(kernel)
 
         if resolve:
             self.resolving = True
